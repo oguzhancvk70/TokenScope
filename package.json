@@ -1,0 +1,48 @@
+{
+  "name": "tokenscope",
+  "version": "0.1.0",
+  "description": "Local-first analyzer for AI coding tool token usage and waste.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/oguzhancvk70/TokenScope.git"
+  },
+  "homepage": "https://github.com/oguzhancvk70/TokenScope#readme",
+  "bugs": "https://github.com/oguzhancvk70/TokenScope/issues",
+  "keywords": ["claude-code", "tokens", "llm", "cli", "cost", "local-first"],
+  "type": "module",
+  "bin": {
+    "tokenscope": "dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "data"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "start": "node dist/cli.js",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "biome check .",
+    "format": "biome check --write ."
+  },
+  "dependencies": {
+    "cli-table3": "^0.6.5",
+    "commander": "^14.0.0",
+    "fast-glob": "^3.3.3",
+    "picocolors": "^1.1.1",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.6.6",
+    "@types/node": "^22.0.0",
+    "tsup": "^9.0.0",
+    "typescript": "~5.9.3",
+    "vitest": "^5.1.0"
+  }
+}

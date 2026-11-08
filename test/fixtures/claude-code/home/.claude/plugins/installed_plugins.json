@@ -1,0 +1,1 @@
+{"version": 2, "plugins": {"helper@market": [{"scope": "user", "installPath": "/nonexistent/helper", "version": "1.0.0"}]}}

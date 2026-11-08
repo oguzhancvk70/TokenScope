@@ -1,0 +1,19 @@
+{
+  "mcpServers": {
+    "unused-server": {
+      "command": "x"
+    }
+  },
+  "projects": {
+    "/tmp/demo": {
+      "mcpServers": {}
+    }
+  },
+  "skillUsage": {
+    "foo": {
+      "usageCount": 3,
+      "lastUsedAt": 1793000000000
+    }
+  },
+  "pluginUsage": {}
+}
