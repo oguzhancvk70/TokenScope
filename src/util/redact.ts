@@ -54,6 +54,16 @@ export function summarizeCommand(command: string, redact = true): string {
   return maskSecrets(head.join(' '));
 }
 
+// zincirdeki her komutun özeti (kural denetimi için; argümanlar yine atılır)
+export function summarizeCommands(command: string): string[] {
+  return command
+    .split(/&&|\|\||;|\||\n/)
+    .map((s) => s.trim())
+    .filter((s) => s && !SETUP_CMD.test(s))
+    .map((s) => summarizeCommand(s, true))
+    .filter(Boolean);
+}
+
 export function urlHost(url: string | undefined): string | undefined {
   if (!url) return undefined;
   try {

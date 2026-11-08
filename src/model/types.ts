@@ -108,6 +108,8 @@ export interface ToolCall {
   isMcp: boolean;
   mcpServer?: string;
   skillName?: string;
+  // Bash: zincirdeki her komutun redakte özeti ("araç alt-komut")
+  commands?: string[];
 }
 
 export interface CommitRef {
@@ -157,4 +159,92 @@ export interface ModelAdvice {
 export interface FixProposal {
   description: string;
   changes: { path: string; before?: string; after: string }[];
+}
+
+// kural uyum denetimi
+export type RuleKind =
+  | 'package-manager'
+  | 'forbidden-path'
+  | 'forbidden-command'
+  | 'required-command'
+  | 'path-reference'
+  | 'script-reference'
+  | 'unclassified';
+
+export interface InstructionRule {
+  id: string;
+  kind: RuleKind;
+  text: string;
+  source: { path: string; line: number; scope: 'global' | 'project'; projectPath?: string };
+  params: Record<string, string>;
+  estimatedTokens: number;
+}
+
+export type RuleStatus = 'followed' | 'violated' | 'stale' | 'untested' | 'unclassified';
+
+export interface RuleAuditResult {
+  rule: InstructionRule;
+  status: RuleStatus;
+  applicableSessions: number;
+  triggeredSessions: number;
+  violations: number;
+  evidence: string[];
+  note?: string;
+}
+
+// etki ölçümü
+export type ChangeEventKind =
+  | 'instructions-edited'
+  | 'mcp-added'
+  | 'mcp-removed'
+  | 'skill-added'
+  | 'skill-removed'
+  | 'fix-applied'
+  | 'manual-baseline';
+
+export interface ChangeEvent {
+  at: Date;
+  kind: ChangeEventKind;
+  path?: string;
+  projectPath?: string;
+  description: string;
+  source: 'log' | 'git' | 'mtime' | 'baseline';
+}
+
+export interface PeriodMetrics {
+  from: Date;
+  to: Date;
+  sessions: number;
+  avgInput: number;
+  medianInput: number;
+  avgOutput: number;
+  avgCacheRead: number;
+  avgStaticContext: number;
+  avgToolCallsPerTurn: number;
+  findingCounts: Record<string, number>;
+  ruleViolationRate?: number;
+}
+
+export interface Comparison {
+  event: ChangeEvent;
+  before: PeriodMetrics;
+  after: PeriodMetrics;
+  sufficientData: boolean;
+  minSessions: number;
+}
+
+// harici entegrasyonlar
+export interface DuplicationSummary {
+  source: 'jscpd';
+  projectPath: string;
+  percentage: number;
+  clones: { files: string[]; lines: number; tokens: number }[];
+}
+
+export interface GitCorrelation {
+  projectPath: string;
+  commits: number;
+  matched: number;
+  highConfidence: number;
+  aiRewriteRatio?: number;
 }

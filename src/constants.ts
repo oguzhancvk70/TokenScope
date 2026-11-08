@@ -11,6 +11,8 @@ export const DEFAULT_THRESHOLDS = {
   repeatedReadsMin: 3,
   hugeOutputTokens: 10_000,
   errorLoopMin: 3,
+  deadRuleMinSessions: 30,
+  impactMinSessions: 10,
 } as const;
 
 export type Thresholds = { -readonly [K in keyof typeof DEFAULT_THRESHOLDS]: number };

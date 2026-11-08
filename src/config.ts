@@ -10,6 +10,8 @@ const ThresholdSchema = z
     repeatedReadsMin: z.number().int().min(2),
     hugeOutputTokens: positive,
     errorLoopMin: z.number().int().min(2),
+    deadRuleMinSessions: z.number().int().min(1),
+    impactMinSessions: z.number().int().min(1),
   })
   .partial();
 

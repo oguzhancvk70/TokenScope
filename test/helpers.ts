@@ -12,4 +12,4 @@ export const LOW_THRESHOLDS: Thresholds = {
 };
 
 export const scanFixture = (thresholds: Thresholds = LOW_THRESHOLDS) =>
-  runScan({ homeDir: FIXTURE_HOME, redact: true, thresholds, now: NOW });
+  runScan({ homeDir: FIXTURE_HOME, redact: true, thresholds, now: NOW, extras: false });

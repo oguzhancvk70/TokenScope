@@ -5,6 +5,7 @@ import { CLI_NAME } from '../constants.js';
 import type { ContextItem, Finding, Severity } from '../model/types.js';
 import type { ScanResult } from '../scan.js';
 import { isoDay } from '../util/time.js';
+import { impactLine } from './impact.js';
 
 const SEV: Record<Severity, (s: string) => string> = {
   high: (s) => pc.red(pc.bold(s)),
@@ -12,6 +13,8 @@ const SEV: Record<Severity, (s: string) => string> = {
   low: pc.cyan,
   info: pc.dim,
 };
+
+const AUDIT_RULES = new Set(['rule-violations', 'conflicting-rules', 'stale-rules', 'dead-rules']);
 
 const TIER = ['', 'Haiku sınıfı', 'Sonnet sınıfı', 'Opus sınıfı', 'Fable sınıfı'];
 
@@ -73,9 +76,14 @@ export function renderScan(r: ScanResult, opts: { top: number }): string {
   const overview = r.findings.find(
     (f) => f.ruleId === 'static-context-tax' && f.wastedTokens === 0,
   );
+  // kural denetimi bulgusu token israfı taşımasa da listeye bir sıra ile girer
+  let top = ranked.slice(0, opts.top);
+  const bestAudit = ranked.find((f) => AUDIT_RULES.has(f.ruleId) && f.severity !== 'info');
+  if (bestAudit && opts.top > 0 && !top.includes(bestAudit))
+    top = [...top.slice(0, opts.top - 1), bestAudit];
   out.push(pc.bold(`En çok israf eden ${Math.min(opts.top, ranked.length)} bulgu`));
   if (!ranked.length) out.push(pc.dim('  Eşikleri aşan bulgu yok.'));
-  for (const [i, f] of ranked.slice(0, opts.top).entries()) out.push(...findingLines(f, i));
+  for (const [i, f] of top.entries()) out.push(...findingLines(f, i));
   if (ranked.length > opts.top)
     out.push(
       pc.dim(`  +${ranked.length - opts.top} bulgu daha (--top ${ranked.length} veya --json)`),
@@ -185,6 +193,31 @@ function footer(r: ScanResult): string[] {
     '',
     pc.dim("Detay için --json (HTML rapor v0.2'de). ~ işaretli değerler tahminidir."),
   ];
+  const impact = impactLine(r.impact, r.summary.until);
+  if (impact) out.push(impact);
+  const git = r.git.filter((x) => x.matched);
+  if (git.length) {
+    const sum = (f: (g: (typeof git)[number]) => number) => git.reduce((n, g) => n + f(g), 0);
+    const high = sum((g) => g.highConfidence);
+    const how = high
+      ? `${high} kesin (Git AI), kalanı zaman aralığına göre`
+      : 'zaman aralığına göre tahmini';
+    const ratios = git.filter((g) => g.aiRewriteRatio !== undefined);
+    const ai = ratios.length
+      ? ` · AI satırlarının %${Math.round((sum((g) => g.aiRewriteRatio ?? 0) / ratios.length) * 100)}'i sonradan yeniden yazıldı`
+      : '';
+    out.push(
+      pc.dim(
+        `Git: ${git.length} projede ${sum((g) => g.matched)}/${sum((g) => g.commits)} commit oturumlarla eşleşti (${how})${ai}`,
+      ),
+    );
+  }
+  const missing = [
+    !r.integrations.jscpd && 'tekrar kod için jscpd (`npx jscpd`, sonra --with-jscpd)',
+    !r.integrations.gitAi && 'kesin AI blame için Git AI (refs/notes/ai)',
+  ].filter(Boolean);
+  if (missing.length && r.integrations.checked && r.sessions.length)
+    out.push(pc.dim(`İpucu: ${missing.join(' · ')}`));
   const p = r.summary.parse;
   if (p.skippedLines) out.push(pc.yellow(`⚠ ${p.skippedLines} satır atlandı (bozuk/okunamayan).`));
   if (r.summary.unpricedModels.length)

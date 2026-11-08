@@ -11,7 +11,7 @@ import type {
 } from '../../model/types.js';
 import { estimateTokens, IMAGE_TOKENS } from '../../tokens/estimate.js';
 import { arr, isObj, type Json, num, str } from '../../util/fs.js';
-import { homeRel, summarizeCommand, urlHost } from '../../util/redact.js';
+import { homeRel, summarizeCommand, summarizeCommands, urlHost } from '../../util/redact.js';
 import type { ParseStats } from '../types.js';
 
 const KNOWN_TYPES = new Set([
@@ -204,6 +204,7 @@ class SessionBuilder {
       }
     } else if (name === 'Bash') {
       call.target = summarizeCommand(str(input.command) ?? '', this.redact);
+      call.commands = summarizeCommands(str(input.command) ?? '');
     } else if (name === 'Grep' || name === 'Glob') {
       call.target = homeRel(str(input.path)) ?? (this.redact ? undefined : str(input.pattern));
     } else if (name === 'Skill') {
