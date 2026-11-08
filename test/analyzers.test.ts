@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
+import { modelFit } from '../src/analyzers/model-fit.js';
 import { DEFAULT_THRESHOLDS } from '../src/constants.js';
-import { scanFixture } from './helpers.js';
+import { LOW_THRESHOLDS, NOW, scanFixture } from './helpers.js';
 
 describe('analyzers', async () => {
   const r = await scanFixture();
@@ -60,13 +61,25 @@ describe('analyzers', async () => {
     expect(demo.recommended!.savingsUSD).toBeGreaterThan(0);
     expect(demo.options.find((o) => o.model === 'claude-opus-5-5')?.fit).toBe('current');
     expect(demo.options.find((o) => o.model === 'claude-haiku-5-5')?.fit).toBe('risky');
-    expect(
-      of('model-fit').some((f) => f.title.includes('Claude Opus 5.5 yerine Claude Sonnet 5.5')),
-    ).toBe(true);
-
     const other = r.modelAdvice.find((a) => a.projectPath === '/tmp/other')!;
     expect(other.complexity.requiredTier).toBe(1);
     expect(other.recommended?.model).toBe('claude-haiku-5-5');
+  });
+
+  it('model-fit bulgusu: anlamlı tasarrufta öneri üretir', () => {
+    const scaled = r.sessions.map((s) => ({
+      ...s,
+      turns: s.turns.map((t) => ({ ...t, usage: { ...t.usage, output: t.usage.output * 1000 } })),
+    }));
+    const findings = modelFit.run({
+      inventory: r.inventory,
+      sessions: scaled,
+      thresholds: LOW_THRESHOLDS,
+      now: NOW,
+    });
+    expect(
+      findings.some((f) => f.title.startsWith('demo: Claude Opus 5.5 yerine Claude Sonnet 5.5')),
+    ).toBe(true);
   });
 
   it('israf toplamı statik vergiyi içermez', () => {
