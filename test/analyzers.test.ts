@@ -60,7 +60,7 @@ describe('analyzers', async () => {
     expect(demo.recommended!.savingsUSD).toBeGreaterThan(0);
     expect(demo.options.find((o) => o.model === 'claude-opus-5-5')?.fit).toBe('current');
     expect(demo.options.find((o) => o.model === 'claude-haiku-5-5')?.fit).toBe('risky');
-    expect(of('model-fit').some((f) => f.title.includes('Opus 5.5 yerine Sonnet 5.5'))).toBe(true);
+    expect(of('model-fit').some((f) => f.title.includes('Claude Opus 5.5 yerine Claude Sonnet 5.5'))).toBe(true);
 
     const other = r.modelAdvice.find((a) => a.projectPath === '/tmp/other')!;
     expect(other.complexity.requiredTier).toBe(1);
