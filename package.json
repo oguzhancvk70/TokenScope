@@ -9,7 +9,14 @@
   },
   "homepage": "https://github.com/oguzhancvk70/TokenScope#readme",
   "bugs": "https://github.com/oguzhancvk70/TokenScope/issues",
-  "keywords": ["claude-code", "tokens", "llm", "cli", "cost", "local-first"],
+  "keywords": [
+    "claude-code",
+    "tokens",
+    "llm",
+    "cli",
+    "cost",
+    "local-first"
+  ],
   "type": "module",
   "bin": {
     "tokenscope": "dist/cli.js"
@@ -23,6 +30,7 @@
   },
   "scripts": {
     "build": "tsup",
+    "prepare": "tsup",
     "dev": "tsup --watch",
     "start": "node dist/cli.js",
     "typecheck": "tsc --noEmit",

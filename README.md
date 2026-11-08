@@ -1,5 +1,13 @@
 # tokenscope
 
+[![CI](https://github.com/oguzhancvk70/TokenScope/actions/workflows/ci.yml/badge.svg)](https://github.com/oguzhancvk70/TokenScope/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+![Node](https://img.shields.io/badge/node-%E2%89%A520-brightgreen)
+![Local-first](https://img.shields.io/badge/local--first-zero%20telemetry-success)
+[![Release](https://img.shields.io/github/v/release/oguzhancvk70/TokenScope)](https://github.com/oguzhancvk70/TokenScope/releases)
+
+**Find where your AI coding tokens go, where they're wasted, and which model could do the job for less.**
+
 > **Fully local. Zero telemetry. No network calls.**
 > It only reads your logs and never writes to your files. Even the pricing table ships as static JSON in the repo.
 > Reports never show file contents, prompt text or command arguments: only paths, sizes and counts (`--redact` is on by default).
@@ -19,11 +27,21 @@ It is most useful if you are **newer to AI-assisted development**, or if you hav
 
 ## Install
 
+Run it straight from GitHub (builds on first run):
+
 ```bash
-npx tokenscope
+npx github:oguzhancvk70/TokenScope
 ```
 
-Requires Node 20+. Nothing to install.
+Or from source:
+
+```bash
+git clone https://github.com/oguzhancvk70/TokenScope.git
+cd TokenScope && npm install
+node dist/cli.js
+```
+
+Requires Node 20+. An npm release (`npx tokenscope`) is planned.
 
 ## Usage
 
@@ -44,13 +62,13 @@ Example `th.json`:
 { "thresholds": { "hugeOutputTokens": 5000, "deadWeightDays": 14 } }
 ```
 
-| Threshold | Default | Rule |
-|---|---|---|
-| `staticItemWarnTokens` | 2000 | static-context-tax |
-| `deadWeightDays` | 30 | dead-weight |
-| `repeatedReadsMin` | 3 | repeated-reads |
-| `hugeOutputTokens` | 10000 | huge-tool-output |
-| `errorLoopMin` | 3 | error-loops |
+| Threshold              | Default | Rule               |
+| ---------------------- | ------- | ------------------ |
+| `staticItemWarnTokens` | 2000    | static-context-tax |
+| `deadWeightDays`       | 30      | dead-weight        |
+| `repeatedReadsMin`     | 3       | repeated-reads     |
+| `hugeOutputTokens`     | 10000   | huge-tool-output   |
+| `errorLoopMin`         | 3       | error-loops        |
 
 ## Example output
 
@@ -82,14 +100,14 @@ Araç × proje
 
 ## Rules
 
-| ID | What it detects |
-|---|---|
+| ID                   | What it detects                                                                                                                                                                                                                                    |
+| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `static-context-tax` | Load that enters every session before you do anything: CLAUDE.md/AGENTS.md, memory, the skill listing, MCP tool schemas and instructions. **Measured** from Claude Code log attachments; estimated from the inventory when the logs don't have it. |
-| `dead-weight` | Skills, MCP servers and plugins that are installed but unused for N days, and the load they add to every session |
-| `huge-tool-output` | Huge tool outputs entering the context (`npm install`, large file reads, ...) |
-| `repeated-reads` | The same file read again and again in one session without changes in between |
-| `error-loops` | The same command or call failing and being retried back to back |
-| `model-fit` | Suggests the cheapest model that fits each project's workload (context size, files edited, turns per session, error rate) by re-pricing the same token usage with alternative models |
+| `dead-weight`        | Skills, MCP servers and plugins that are installed but unused for N days, and the load they add to every session                                                                                                                                   |
+| `huge-tool-output`   | Huge tool outputs entering the context (`npm install`, large file reads, ...)                                                                                                                                                                      |
+| `repeated-reads`     | The same file read again and again in one session without changes in between                                                                                                                                                                       |
+| `error-loops`        | The same command or call failing and being retried back to back                                                                                                                                                                                    |
+| `model-fit`          | Suggests the cheapest model that fits each project's workload (context size, files edited, turns per session, error rate) by re-pricing the same token usage with alternative models                                                               |
 
 ## Honest data
 
@@ -111,6 +129,8 @@ npm run lint
 - Adding support for a tool: [docs/adding-an-adapter.md](docs/adding-an-adapter.md)
 - Adding a rule: [docs/adding-a-rule.md](docs/adding-a-rule.md)
 - Notes on the Claude Code log format: [docs/claude-code-log-format.md](docs/claude-code-log-format.md)
+
+Contributions welcome: see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## License
 
