@@ -1,0 +1,23 @@
+{
+  "sessionId": "legacy-1",
+  "projectHash": "0123abcd",
+  "startTime": "2026-11-01T08:00:00.000Z",
+  "lastUpdated": "2026-11-01T08:05:00.000Z",
+  "messages": [
+    {
+      "id": "g1",
+      "timestamp": "2026-11-01T08:01:00.000Z",
+      "type": "gemini",
+      "content": "hi",
+      "model": "gemini-2.5-flash",
+      "tokens": {
+        "input": 100,
+        "output": 10,
+        "cached": 0,
+        "thoughts": 0,
+        "tool": 0,
+        "total": 110
+      }
+    }
+  ]
+}

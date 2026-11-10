@@ -1,6 +1,7 @@
 import type { Finding, RuleAuditResult } from '../model/types.js';
 import { LOG_KINDS } from '../rules-audit/checks/index.js';
 import { homeRel } from '../util/redact.js';
+import { soleTool } from './rule-scope.js';
 import { ruleLoc, shortText } from './rule-util.js';
 import type { Analyzer } from './types.js';
 import { fmtTokens } from './util.js';
@@ -31,7 +32,7 @@ export const deadRules: Analyzer = {
           'Kuralın konusu olan eylem (komut, düzenleme, commit) bu oturumlarda hiç görülmedi.',
         wastedTokens: perSession * sessions,
         wastedTokensExact: false,
-        scope: { projectPath: rs[0]?.rule.source.projectPath },
+        scope: { tool: soleTool(rs[0]?.rule), projectPath: rs[0]?.rule.source.projectPath },
         evidence: rs.map((r) => `${ruleLoc(r.rule)} ${shortText(r.rule.text)}`),
         suggestion: 'Gerçekten gerekli değilse kaldır veya ilgili projenin talimat dosyasına taşı.',
       });

@@ -1,5 +1,13 @@
 import type { Finding, ModelAdvice, ModelOption, Session } from '../model/types.js';
-import { costWithRates, modelKey, ratesFor, recommendable, usageCost } from '../pricing.js';
+import {
+  costWithRates,
+  MODELS,
+  modelKey,
+  providerOf,
+  ratesFor,
+  recommendable,
+  usageCost,
+} from '../pricing.js';
 import type { Analyzer } from './types.js';
 import { fmtTokens, fmtUSD, projectName } from './util.js';
 
@@ -85,7 +93,8 @@ export function computeModelAdvice(sessions: Session[]): ModelAdvice[] {
       .sort((a, b) => b[1] - a[1])
       .map(([model, c]) => ({ model, share: c / currentCost }));
     const dominant = currentModels[0]?.model;
-    const options: ModelOption[] = recommendable()
+    const provider = providerOf(dominant ? MODELS[dominant] : undefined);
+    const options: ModelOption[] = recommendable(provider)
       .filter(([, r]) => r.tier >= cx.requiredTier - 1)
       .map(([model, r]) => {
         const cost = turns.reduce((n, t) => n + costWithRates(r, t.usage), 0);

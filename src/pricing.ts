@@ -12,7 +12,11 @@ export interface Rates {
   cacheRead: number;
   longContextThreshold?: number;
   longContextMultiplier?: number;
+  longContextOutputMultiplier?: number;
+  provider?: string;
 }
+
+export const providerOf = (r: Rates | undefined): string => r?.provider ?? 'anthropic';
 
 export const MODELS = pricing.models as Record<string, Rates>;
 const KEYS = Object.keys(MODELS).sort((a, b) => b.length - a.length);
@@ -27,23 +31,24 @@ export function ratesFor(model: string | undefined): Rates | undefined {
   return key ? MODELS[key] : undefined;
 }
 
-export const recommendable = (): [string, Rates][] =>
+export const recommendable = (provider = 'anthropic'): [string, Rates][] =>
   Object.entries(MODELS)
-    .filter(([, r]) => r.recommend)
+    .filter(([, r]) => r.recommend && providerOf(r) === provider)
     .sort((a, b) => a[1].tier - b[1].tier);
 
 export function costWithRates(r: Rates, u: TokenUsage): number {
   const promptTokens = u.input + u.cacheRead + u.cacheWrite;
-  const m =
-    r.longContextThreshold && promptTokens > r.longContextThreshold
-      ? (r.longContextMultiplier ?? 1)
-      : 1;
+  const long = !!r.longContextThreshold && promptTokens > r.longContextThreshold;
+  const m = long ? (r.longContextMultiplier ?? 1) : 1;
+  const mo = long ? (r.longContextOutputMultiplier ?? m) : 1;
   const split = (u.cacheWrite5m ?? 0) + (u.cacheWrite1h ?? 0);
   const write =
     split > 0
       ? (u.cacheWrite5m ?? 0) * r.cacheWrite5m + (u.cacheWrite1h ?? 0) * r.cacheWrite1h
       : u.cacheWrite * r.cacheWrite5m;
-  return (m * (u.input * r.input + u.output * r.output + u.cacheRead * r.cacheRead + write)) / 1e6;
+  return (
+    (m * (u.input * r.input + u.cacheRead * r.cacheRead + write) + mo * u.output * r.output) / 1e6
+  );
 }
 
 // USD; model fiyatı bilinmiyorsa undefined ("veri yok")

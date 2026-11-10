@@ -1,3 +1,4 @@
+import type { UsageCounter } from '../discovery/claude-code.js';
 import type { InstalledTool, Session, ToolId } from '../model/types.js';
 
 export interface LoadOptions {
@@ -25,4 +26,19 @@ export interface Adapter {
   detect(opts?: { projectPaths?: string[] }): Promise<InstalledTool | null>;
   loadSessions(opts: LoadOptions): AsyncIterable<Session>;
   stats(): ParseStats;
+  usageCounters?(): Promise<{
+    skills: Map<string, UsageCounter>;
+    plugins: Map<string, UsageCounter>;
+  }>;
 }
+
+export const sumStats = (all: ParseStats[]): ParseStats =>
+  all.reduce(
+    (a, s) => ({
+      files: a.files + s.files,
+      lines: a.lines + s.lines,
+      skippedLines: a.skippedLines + s.skippedLines,
+      unknownTypes: a.unknownTypes + s.unknownTypes,
+    }),
+    emptyStats(),
+  );

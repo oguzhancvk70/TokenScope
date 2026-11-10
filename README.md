@@ -14,11 +14,11 @@
 
 tokenscope finds the AI coding tools installed on your machine (Claude Code, Codex, Gemini CLI, Cursor), inventories their skills, MCP servers and config, and analyzes your session logs to answer:
 
-1. **Where** do my tokens go? (by tool, project, session, tool call)
+1. **Where** do my tokens go? (by tool, project, session, tool call, and side by side across tools)
 2. Where are they **wasted**? (repeated reads, huge outputs, error loops, unused skills/MCP servers loaded into every session)
 3. **What should I change?** (concrete, actionable suggestions)
-4. **Which model** could finish this project for less? (e.g. is Sonnet enough instead of Opus?)
-5. Does the agent actually **follow my CLAUDE.md / AGENTS.md rules**? Which rules are stale, dead or contradict each other?
+4. **Which model** could finish this project for less? (e.g. is Sonnet enough instead of Opus? Would GPT-6.1 Terra do instead of Sol?)
+5. Does the agent actually **follow my CLAUDE.md / AGENTS.md / GEMINI.md rules**? Which rules are stale, dead or contradict each other?
 6. Did my last change (shorter CLAUDE.md, removed MCP server) **actually help**? Before/after numbers, not guesses.
 
 ## Who is this for?
@@ -26,6 +26,24 @@ tokenscope finds the AI coding tools installed on your machine (Claude Code, Cod
 If you have been working with AI coding assistants for a while, you probably already do most of what tokenscope suggests. You keep your instruction files short, you trim noisy command output, you notice when the agent goes in circles, and you pick a model to match the task. For you, tokenscope is mostly a quick sanity check.
 
 It is most useful if you are **newer to AI-assisted development**, or if you have simply never looked at where your tokens go. Many of the costly habits are invisible from inside a session: a long `CLAUDE.md` loaded into every conversation, MCP servers you installed once and forgot, or the most expensive model used for routine edits. tokenscope makes these visible, puts a number on them, and tells you what to change. Over time you build the same instincts experienced developers rely on.
+
+## Supported tools
+
+| Tool            | Sessions & tokens                                                        | Static context inventory                                                                                                  | Model suggestions | Log format notes                                            |
+| --------------- | ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------- | ----------------- | ----------------------------------------------------------- |
+| **Claude Code** | ✅ `~/.claude/projects/**/*.jsonl`, incl. subagents                      | `CLAUDE.md`, `CLAUDE.local.md`, `AGENTS.md`, memory, skills, plugins, MCP servers, hooks                                  | Anthropic models  | [claude-code-log-format.md](docs/claude-code-log-format.md) |
+| **Codex CLI**   | ✅ `~/.codex/sessions/**/rollout-*.jsonl` (+ archived)                   | `AGENTS.md` / `AGENTS.override.md` (global, project, nested), skills, `[mcp_servers.*]` in `config.toml`, memories        | OpenAI models     | [codex-log-format.md](docs/codex-log-format.md)             |
+| **Gemini CLI**  | ✅ `~/.gemini/tmp/*/chats/session-*.jsonl` (+ legacy `.json`, subagents) | `GEMINI.md` (or `context.fileName`), skills, `mcpServers` in `settings.json`, extensions                                  | Google models     | [gemini-log-format.md](docs/gemini-log-format.md)           |
+| **Cursor**      | ❌ no session data (`veri yok`)                                          | `.cursorrules`, `.cursor/rules/*.mdc` (rules without `alwaysApply: true` count as on-demand), `mcp.json` (global/project) | -                 | -                                                           |
+
+How the tools are put on one scale:
+
+- **One common model.** Every adapter turns its log into the same sessions → turns → tool calls shape. Tool names are mapped to shared ones (Codex `shell` / Gemini `run_shell_command` → `Bash`, `apply_patch` / `replace` → `Edit`, `read_file` and single-file `cat`/`sed -n` → `Read`, …), so every analyzer (repeated reads, error loops, huge outputs, dead weight, rule audit) works for every tool.
+- **Token semantics are normalized.** OpenAI and Google count cached tokens _inside_ the input count; tokenscope splits them into `input` and `cacheRead` like Anthropic does. Gemini's thinking tokens are billed as output and counted as output.
+- **Same-provider suggestions.** `model-fit` only suggests models from the provider of the model you used: OpenAI for Codex sessions, Google for Gemini sessions, Anthropic for Claude Code.
+- **Per-tool rule audit.** A rule is checked only against sessions of the tools that load its file: `GEMINI.md` → Gemini sessions, `AGENTS.md` → Codex (and Claude Code, which also lists it). Rule findings are tagged with their tool.
+- **Per-tool report.** When more than one tool has sessions, `scan` prints an **Araç bazında** (per tool) table with sessions, tokens, cost, waste and findings; `--json` has the same data under `summary.tools`.
+- **Limits.** Codex and Gemini logs don't record tool schemas or the system prompt, so their static load is estimated from the inventory instead of measured. Parts of both formats were taken from the tools' source code and are not yet verified against real files; each format doc says which parts. Use `--tool claude-code|codex|gemini-cli|cursor` to look at one tool.
 
 ## Install
 
@@ -54,11 +72,12 @@ tokenscope scan --all               # all time
 tokenscope scan --project ~/dev/app # a single project
 tokenscope scan --top 20            # show more findings
 tokenscope scan --json > out.json   # machine-readable output
+tokenscope scan --tool codex        # one tool only: claude-code, codex, gemini-cli, cursor
 tokenscope inventory                # installed tools, skills, MCP servers, plugins, static load
 tokenscope scan --config th.json    # override thresholds
 tokenscope scan --with-jscpd        # run jscpd (if installed) and add duplicate-code data
 
-tokenscope audit                    # rule compliance report for CLAUDE.md / AGENTS.md
+tokenscope audit                    # rule compliance report for CLAUDE.md / AGENTS.md / GEMINI.md
 tokenscope audit --all-rules        # also list up-to-date references and every unchecked line
 tokenscope events                   # detected changes (instruction edits, MCP/skill changes, baselines)
 tokenscope baseline --note "before" # snapshot current metrics to ~/.tokenscope/baselines
@@ -90,7 +109,7 @@ Example `th.json`:
 > The terminal output is currently in Turkish. `--json` uses English keys.
 
 ```
-tokenscope · 2026-10-09 → 2026-11-08 · claude-code (44 oturum), codex (veri yok)
+tokenscope · 2026-10-09 → 2026-11-08 · claude-code (44 oturum), codex (12 oturum), gemini-cli (5 oturum), cursor (veri yok)
 Toplam 990.2M token (kesin) · girdi 9.4k · çıktı 4.3M · cache okuma 973.5M · cache yazma 12.4M
 ~$529 tahmini maliyet · tahmini israf ~273.0k token · sabit yük ~21.6k token/oturum
 
@@ -104,9 +123,15 @@ En çok israf eden 5 bulgu
  ...
 
 Model önerileri (aynı işi daha uygun maliyetle bitirebilecek modeller)
-│ Proje   │ Şu anki    │ ~Maliyet │ Gereken       │ Önerilen   │ ~Tasarruf │ Alternatifler                                 │
-│ web-app │ opus-5 %88 │ $56.12   │ Sonnet sınıfı │ Sonnet 5.5 │ $31.93    │ Haiku 5.5 $5.24 ? · Sonnet 5.5 $24.19 ✓ · ... │
-│ api     │ opus-5 %62 │ $400     │ Opus sınıfı   │ Opus 5.5   │ $119      │ Sonnet 5.5 $218 ? · Opus 5.5 $282 ✓ · ...     │
+│ Proje   │ Şu anki          │ ~Maliyet │ Gereken       │ Önerilen      │ ~Tasarruf │ Alternatifler                                   │
+│ web-app │ opus-5 %88       │ $56.12   │ Sonnet sınıfı │ Sonnet 5.5    │ $31.93    │ Haiku 5.5 $5.24 ? · Sonnet 5.5 $24.19 ✓ · ...   │
+│ api     │ gpt-6.1-sol %100 │ $41.80   │ 2. sınıf      │ GPT-6.1 Terra │ $20.10    │ GPT-6 Luna $2.09 ? · GPT-6.1 Terra $21.70 ✓ ... │
+
+Araç bazında
+│ Araç        │ Oturum │ Toplam token │ ~Maliyet │ ~İsraf │ Bulgu │
+│ claude-code │ 44     │ 912.4M       │ $461     │ 251.3k │ 14    │
+│ codex       │ 12     │ 61.0M        │ $52.30   │ 18.2k  │ 5     │
+│ gemini-cli  │ 5      │ 16.8M        │ $15.70   │ 3.5k   │ 2     │
 
 Araç × proje
 │ Araç        │ Proje   │ Oturum │ Girdi │ Çıktı │ Cache okuma │ Cache yazma │ ~Maliyet │ ~İsraf │
@@ -115,20 +140,20 @@ Araç × proje
 
 ## Rules
 
-| ID                                                                  | What it detects                                                                                                                                                                                                                                    |
-| ------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `static-context-tax`                                                | Load that enters every session before you do anything: CLAUDE.md/AGENTS.md, memory, the skill listing, MCP tool schemas and instructions. **Measured** from Claude Code log attachments; estimated from the inventory when the logs don't have it. |
-| `dead-weight`                                                       | Skills, MCP servers and plugins that are installed but unused for N days, and the load they add to every session                                                                                                                                   |
-| `huge-tool-output`                                                  | Huge tool outputs entering the context (`npm install`, large file reads, ...)                                                                                                                                                                      |
-| `repeated-reads`                                                    | The same file read again and again in one session without changes in between                                                                                                                                                                       |
-| `error-loops`                                                       | The same command or call failing and being retried back to back                                                                                                                                                                                    |
-| `model-fit`                                                         | Suggests the cheapest model that fits each project's workload (context size, files edited, turns per session, error rate) by re-pricing the same token usage with alternative models                                                               |
-| `rule-violations`, `stale-rules`, `dead-rules`, `conflicting-rules` | Instruction file compliance, see [Rule compliance audit](#rule-compliance-audit-tokenscope-audit)                                                                                                                                                  |
-| `duplicate-code`                                                    | Files with duplicated code (jscpd) and how many tokens reading them cost, see [Integrations](#integrations-jscpd-git-ai)                                                                                                                           |
+| ID                                                                  | What it detects                                                                                                                                                                                                                                                                                    |
+| ------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `static-context-tax`                                                | Load that enters every session before you do anything: CLAUDE.md/AGENTS.md/GEMINI.md, memory, the skill listing, MCP tool schemas and instructions. **Measured** from Claude Code log attachments (and Codex's injected instruction/environment messages); estimated from the inventory otherwise. |
+| `dead-weight`                                                       | Skills, MCP servers and plugins (Gemini: extensions) that are installed but unused for N days, and the load they add to every session. The fix hint names the right file per tool (`.mcp.json`, `config.toml`, `settings.json`)                                                                    |
+| `huge-tool-output`                                                  | Huge tool outputs entering the context (`npm install`, large file reads, ...)                                                                                                                                                                                                                      |
+| `repeated-reads`                                                    | The same file read again and again in one session without changes in between                                                                                                                                                                                                                       |
+| `error-loops`                                                       | The same command or call failing and being retried back to back                                                                                                                                                                                                                                    |
+| `model-fit`                                                         | Suggests the cheapest model that fits each project's workload (context size, files edited, turns per session, error rate) by re-pricing the same token usage with alternative models                                                                                                               |
+| `rule-violations`, `stale-rules`, `dead-rules`, `conflicting-rules` | Instruction file compliance, see [Rule compliance audit](#rule-compliance-audit-tokenscope-audit)                                                                                                                                                                                                  |
+| `duplicate-code`                                                    | Files with duplicated code (jscpd) and how many tokens reading them cost, see [Integrations](#integrations-jscpd-git-ai)                                                                                                                                                                           |
 
 ## Rule compliance audit (`tokenscope audit`)
 
-Instruction files are supposed to steer the agent, but nothing tells you whether they do. `audit` reads every `CLAUDE.md`, `CLAUDE.local.md`, `.claude/CLAUDE.md` and `AGENTS.md` that tokenscope discovers (global and per project), splits them into rules (one bullet, numbered item or paragraph line each) and checks them against your session logs and your disk.
+Instruction files are supposed to steer the agent, but nothing tells you whether they do. `audit` reads every instruction file that tokenscope discovers (global and per project): `CLAUDE.md`, `CLAUDE.local.md`, `.claude/CLAUDE.md`, `AGENTS.md` / `AGENTS.override.md`, `GEMINI.md` (or your `context.fileName`), Gemini extension context files, `.cursorrules` and `.cursor/rules/*`. It splits them into rules (one bullet, numbered item or paragraph line each) and checks them against your disk and the session logs **of the tools that load that file**. A `GEMINI.md` rule is never marked violated by a Claude Code session. Cursor has no session data, so its rules are only checked on disk (stale paths and scripts).
 
 Rules are classified with **deterministic patterns in English and Turkish**, no LLM involved. Patterns live in `src/rules-audit/patterns/` (`en.ts`, `tr.ts`), so adding a new phrasing is a one-line change.
 
@@ -165,7 +190,7 @@ Most tools stop at "here is the problem". tokenscope also measures whether your 
 
 **Change events** are detected automatically, without any setup:
 
-- **Logs:** Claude Code records the size of each instruction file loaded into a session. When that size changes between sessions, that's an `instructions-edited` event with the exact before/after size (e.g. `CLAUDE.md 6.1k → 2.3k token`).
+- **Logs (Claude Code only):** Claude Code records the size of each instruction file loaded into a session. When that size changes between sessions, that's an `instructions-edited` event with the exact before/after size (e.g. `CLAUDE.md 6.1k → 2.3k token`).
 - **Git history** of instruction files, or the file's **mtime** if it isn't in a repository.
 - **Baselines:** `tokenscope baseline` stores current metrics plus the list of MCP servers and skills. Differences between consecutive baselines become `mcp-added`, `mcp-removed`, `skill-added` and `skill-removed` events.
 
@@ -193,8 +218,9 @@ tokenscope does not bundle or install these tools. If they are already on your m
 - Total waste excludes `static-context-tax` so it isn't double-counted with `dead-weight`; static load is shown on its own line.
 - Rule compliance is reported as _possible_ violations, never as a verdict. Command evidence is redacted to `tool subcommand`.
 - Before/after comparisons need enough sessions on both sides and are described as correlation, not causation.
-- Tools whose data can't be read show `veri yok` ("no data") instead of `$0`. v0.1 analyzes Claude Code logs only. Codex, Gemini CLI and Cursor are only detected as installed.
-- Costs are estimated from list prices in `data/pricing.json`. Model suggestions are heuristic: they don't account for tokenizer differences or a cheaper model needing more turns.
+- Tools whose data can't be read show `veri yok` ("no data") instead of `$0` (today: Cursor). See [Supported tools](#supported-tools).
+- Costs are estimated from list prices in `data/pricing.json` (Anthropic, OpenAI and Google standard tiers, snapshot 2026-11-10, including each provider's long-context surcharge). Some Gemini prices change on announced dates (`gemini-4-argon` on 2026-12-01, `gemini-3.6/3.8-flash` on 2027-01-01); the table holds the price in effect at the snapshot. Models not in the table show `veri yok` instead of a guess.
+- Model suggestions are heuristic: they don't account for tokenizer differences, a cheaper model needing more turns, or subscription plans (ChatGPT / Gemini plans bill differently from the API).
 
 ## Development
 
@@ -208,7 +234,8 @@ npm run lint
 
 - Adding support for a tool: [docs/adding-an-adapter.md](docs/adding-an-adapter.md)
 - Adding a rule: [docs/adding-a-rule.md](docs/adding-a-rule.md)
-- Notes on the Claude Code log format: [docs/claude-code-log-format.md](docs/claude-code-log-format.md)
+- Log format notes: [Claude Code](docs/claude-code-log-format.md), [Codex CLI](docs/codex-log-format.md), [Gemini CLI](docs/gemini-log-format.md)
+- Updating prices: edit `data/pricing.json` (`provider`, `tier`, `recommend`, long-context fields); no network fetch happens at runtime
 - How instruction rules are written in practice and what the audit patterns cover: [docs/instruction-rule-patterns.md](docs/instruction-rule-patterns.md)
 
 Contributions welcome: see [CONTRIBUTING.md](CONTRIBUTING.md).

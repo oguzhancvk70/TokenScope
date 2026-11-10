@@ -152,6 +152,22 @@ export function renderScan(r: ScanResult, opts: { top: number }): string {
     );
   }
 
+  const active = r.summary.tools.filter((x) => x.sessions > 0);
+  if (active.length > 1) {
+    out.push('', pc.bold('Araç bazında'));
+    const at = table(['Araç', 'Oturum', 'Toplam token', '~Maliyet', '~İsraf', 'Bulgu']);
+    for (const x of active)
+      at.push([
+        x.id,
+        x.sessions,
+        fmtTokens(x.tokens.total),
+        x.estCostUSD !== undefined ? fmtUSD(x.estCostUSD) : 'veri yok',
+        x.wastedTokens ? fmtTokens(x.wastedTokens) : '-',
+        x.findings || '-',
+      ]);
+    out.push(at.toString());
+  }
+
   out.push('', pc.bold('Araç × proje'));
   const t = table([
     'Araç',
@@ -241,7 +257,9 @@ export function renderInventory(r: ScanResult): string {
   for (const t of r.inventory.tools) {
     tt.push([
       t.id,
-      t.supported ? pc.green('analiz edilir') : pc.dim('kurulu · veri yok (v0.2+)'),
+      t.supported
+        ? pc.green('analiz edilir')
+        : pc.dim(t.contextItems.length ? 'envanter · oturum verisi yok' : 'kurulu · veri yok'),
       t.version ?? '-',
       t.logPaths.length ? t.logPaths.map(tilde).join('\n') : '-',
       t.configPaths.length ? t.configPaths.map(tilde).join('\n') : '-',

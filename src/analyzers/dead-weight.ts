@@ -56,7 +56,10 @@ export const deadWeight: Analyzer = {
             .filter((i) => i !== p)
             .map((i) => `${i.kind}: ${i.name}`)
             .slice(0, 10),
-          suggestion: `settings.json → enabledPlugins içinde "${p.name}" kapat veya sadece gereken projede etkinleştir.`,
+          suggestion:
+            tool.id === 'gemini-cli'
+              ? `gemini extensions disable ${p.name} (veya sadece gereken projede etkinleştir).`
+              : `settings.json → enabledPlugins içinde "${p.name}" kapat veya sadece gereken projede etkinleştir.`,
         });
       }
 
@@ -77,7 +80,11 @@ export const deadWeight: Analyzer = {
           scope: { tool: tool.id, projectPath: m.projectPath },
           evidence: [m.name],
           suggestion:
-            'Sunucuyu kapat veya global yerine sadece gereken projenin .mcp.json dosyasına taşı.',
+            tool.id === 'codex'
+              ? `config.toml içinde [mcp_servers.${m.name}] için enabled = false yap veya projenin .codex/config.toml dosyasına taşı.`
+              : tool.id === 'gemini-cli'
+                ? `settings.json → mcpServers içinden "${m.name}" kaldır veya projenin .gemini/settings.json dosyasına taşı.`
+                : 'Sunucuyu kapat veya global yerine sadece gereken projenin .mcp.json dosyasına taşı.',
         });
       }
 

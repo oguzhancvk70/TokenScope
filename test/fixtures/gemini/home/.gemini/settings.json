@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "docs": {
+      "command": "docs-mcp"
+    },
+    "my-tools": {
+      "httpUrl": "https://example.invalid"
+    }
+  }
+}

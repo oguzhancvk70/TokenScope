@@ -1,4 +1,5 @@
 import type { Finding } from '../model/types.js';
+import { soleTool } from './rule-scope.js';
 import { ruleLoc } from './rule-util.js';
 import type { Analyzer } from './types.js';
 
@@ -16,7 +17,7 @@ export const staleRules: Analyzer = {
           detail: r.rule.text,
           wastedTokens: r.rule.estimatedTokens * r.applicableSessions,
           wastedTokensExact: false,
-          scope: { projectPath: r.rule.source.projectPath },
+          scope: { tool: soleTool(r.rule), projectPath: r.rule.source.projectPath },
           evidence: [ruleLoc(r.rule)],
           suggestion: `Satır ${r.rule.source.line}: ${r.note ?? 'referans'}; güncelle veya sil.`,
         }),

@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import type { InstructionRule, Inventory } from '../model/types.js';
+import type { ContextItem, InstructionRule, Inventory, ToolId } from '../model/types.js';
 import { estimateTextTokens } from '../tokens/estimate.js';
 import { readText } from '../util/fs.js';
 import { EN_PATTERNS } from './patterns/en.js';
@@ -13,6 +13,7 @@ export interface RuleSource {
   path: string;
   scope: 'global' | 'project';
   projectPath?: string;
+  tools?: ToolId[];
 }
 
 const ruleId = (path: string, line: number, text: string) =>
@@ -76,22 +77,28 @@ export function extractRules(text: string, source: RuleSource): InstructionRule[
 
 // envanterdeki talimat dosyalarından kurallar (aynı dosya bir kez)
 export async function loadRules(inventory: Inventory): Promise<InstructionRule[]> {
-  const seen = new Set<string>();
-  const rules: InstructionRule[] = [];
+  // aynı dosyayı yükleyen tüm araçlar; kural sadece onların oturumlarına uygulanır
+  const files = new Map<string, { item: ContextItem; tools: ToolId[] }>();
   for (const tool of inventory.tools) {
     for (const item of tool.contextItems) {
-      if (item.kind !== 'instructions-file' || seen.has(item.path)) continue;
-      seen.add(item.path);
-      const text = await readText(item.path);
-      if (text === undefined) continue;
-      rules.push(
-        ...extractRules(text, {
-          path: item.path,
-          scope: item.scope,
-          projectPath: item.projectPath,
-        }),
-      );
+      if (item.kind !== 'instructions-file') continue;
+      const e = files.get(item.path) ?? { item, tools: [] };
+      if (!e.tools.includes(tool.id)) e.tools.push(tool.id);
+      files.set(item.path, e);
     }
+  }
+  const rules: InstructionRule[] = [];
+  for (const { item, tools } of files.values()) {
+    const text = await readText(item.path);
+    if (text === undefined) continue;
+    rules.push(
+      ...extractRules(text, {
+        path: item.path,
+        scope: item.scope,
+        projectPath: item.projectPath,
+        tools,
+      }),
+    );
   }
   return rules;
 }

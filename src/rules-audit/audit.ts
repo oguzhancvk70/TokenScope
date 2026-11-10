@@ -12,6 +12,8 @@ import type { CheckContext } from './checks/types.js';
 import { loadRules } from './extract.js';
 
 export const appliesTo = (rule: InstructionRule, s: Session): boolean => {
+  const tools = rule.source.tools;
+  if (tools?.length && !tools.includes(s.tool)) return false;
   const p = rule.source.projectPath;
   if (rule.source.scope === 'global' || !p) return true;
   return s.projectPath === p || s.projectPath.startsWith(`${p}/`);

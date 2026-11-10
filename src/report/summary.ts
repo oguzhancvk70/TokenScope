@@ -22,7 +22,15 @@ export interface ProjectRow {
 export interface ScanSummary {
   since?: string;
   until: string;
-  tools: { id: ToolId; supported: boolean; sessions: number }[];
+  tools: {
+    id: ToolId;
+    supported: boolean;
+    sessions: number;
+    tokens: TokenTotals;
+    estCostUSD?: number;
+    wastedTokens: number;
+    findings: number;
+  }[];
   sessions: number;
   subagentSessions: number;
   tokens: TokenTotals;
@@ -103,7 +111,8 @@ export function buildSummary(args: {
   for (const f of waste) {
     if (!f.scope.projectPath) continue;
     for (const row of rows.values())
-      if (row.projectPath === f.scope.projectPath) row.wastedTokens += f.wastedTokens;
+      if (row.projectPath === f.scope.projectPath && (!f.scope.tool || row.tool === f.scope.tool))
+        row.wastedTokens += f.wastedTokens;
   }
 
   const main = sessions.filter((s) => !s.isSidechain);
@@ -116,11 +125,23 @@ export function buildSummary(args: {
   return {
     since: args.since?.toISOString(),
     until: args.now.toISOString(),
-    tools: args.inventory.tools.map((t) => ({
-      id: t.id,
-      supported: t.supported,
-      sessions: main.filter((s) => s.tool === t.id).length,
-    })),
+    tools: args.inventory.tools.map((t) => {
+      const own = [...rows.values()].filter((r) => r.tool === t.id);
+      const tk = zero();
+      for (const r of own)
+        for (const k of Object.keys(tk) as (keyof TokenTotals)[]) tk[k] += r.tokens[k];
+      const costs = own.map((r) => r.estCostUSD).filter((c): c is number => c !== undefined);
+      const fs = findings.filter((f) => f.scope.tool === t.id);
+      return {
+        id: t.id,
+        supported: t.supported,
+        sessions: main.filter((s) => s.tool === t.id).length,
+        tokens: tk,
+        estCostUSD: costs.length ? costs.reduce((a, b) => a + b, 0) : undefined,
+        wastedTokens: fs.filter(COUNTS_AS_WASTE).reduce((n, f) => n + f.wastedTokens, 0),
+        findings: fs.length,
+      };
+    }),
     sessions: main.length,
     subagentSessions: sessions.length - main.length,
     tokens,

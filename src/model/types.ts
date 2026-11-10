@@ -175,7 +175,14 @@ export interface InstructionRule {
   id: string;
   kind: RuleKind;
   text: string;
-  source: { path: string; line: number; scope: 'global' | 'project'; projectPath?: string };
+  source: {
+    path: string;
+    line: number;
+    scope: 'global' | 'project';
+    projectPath?: string;
+    // dosyayı yükleyen araçlar (boşsa hepsi)
+    tools?: ToolId[];
+  };
   params: Record<string, string>;
   estimatedTokens: number;
 }

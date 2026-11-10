@@ -1,0 +1,7 @@
+model = "gpt-6.1-sol"
+
+[mcp_servers.docs]
+command = "docs-mcp"
+
+[mcp_servers."github-tools"]
+url = "https://example.invalid/mcp"

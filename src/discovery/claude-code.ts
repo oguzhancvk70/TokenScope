@@ -11,7 +11,7 @@ export const claudeJson = (home: string): string => join(home, '.claude.json');
 export const projectSlug = (projectPath: string): string =>
   projectPath.replace(/[^a-zA-Z0-9]/g, '-');
 
-const SCAN_IGNORE = [
+export const SCAN_IGNORE = [
   '**/node_modules/**',
   '**/.git/**',
   '**/dist/**',
@@ -24,7 +24,7 @@ const SCAN_IGNORE = [
   '**/vendor/**',
 ];
 
-async function fileItem(
+export async function fileItem(
   kind: ContextItemKind,
   path: string,
   scope: 'global' | 'project',
@@ -44,7 +44,7 @@ async function fileItem(
 }
 
 // skill listesine giren kısım: ad + açıklama
-async function skillItem(
+export async function skillItem(
   skillMd: string,
   scope: 'global' | 'project',
   extra: Partial<ContextItem> = {},
@@ -65,7 +65,7 @@ async function skillItem(
   };
 }
 
-function mcpItems(
+export function mcpItems(
   servers: unknown,
   path: string,
   scope: 'global' | 'project',

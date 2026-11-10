@@ -1,0 +1,2 @@
+{"sessionId": "sub-1", "projectHash": "h", "startTime": "2026-11-06T09:00:03.000Z", "lastUpdated": "2026-11-06T09:00:05.000Z", "kind": "subagent", "directories": ["/work/gem"]}
+{"id": "s1", "timestamp": "2026-11-06T09:00:04.000Z", "type": "gemini", "content": "", "model": "gemini-3.8-flash", "tokens": {"input": 300, "output": 20, "cached": 0, "thoughts": 0, "tool": 0, "total": 320}}

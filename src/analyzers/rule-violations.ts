@@ -1,4 +1,5 @@
 import type { Finding, RuleKind } from '../model/types.js';
+import { soleTool } from './rule-scope.js';
 import { ruleLoc, shortText } from './rule-util.js';
 import type { Analyzer } from './types.js';
 
@@ -23,7 +24,7 @@ export const ruleViolations: Analyzer = {
         detail: `${ruleLoc(r.rule)} · ${r.rule.kind} · olası ihlal: kullanıcı açıkça istemiş olabilir`,
         wastedTokens: 0,
         wastedTokensExact: false,
-        scope: { projectPath: r.rule.source.projectPath },
+        scope: { tool: soleTool(r.rule), projectPath: r.rule.source.projectPath },
         evidence: r.evidence,
         suggestion:
           HINT[r.rule.kind] ??

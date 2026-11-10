@@ -1,7 +1,9 @@
 import { homedir } from 'node:os';
 import { resolve } from 'node:path';
 import { createClaudeCodeAdapter } from './adapters/claude-code/index.js';
-import { emptyStats } from './adapters/types.js';
+import { createCodexAdapter } from './adapters/codex/index.js';
+import { createGeminiAdapter } from './adapters/gemini/index.js';
+import { type Adapter, sumStats } from './adapters/types.js';
 import { runAnalyzers } from './analyzers/index.js';
 import { computeModelAdvice } from './analyzers/model-fit.js';
 import { DEFAULT_THRESHOLDS, type Thresholds } from './constants.js';
@@ -69,11 +71,14 @@ export async function runScan(req: ScanRequest): Promise<ScanResult> {
   const project = req.project ? resolve(expandHome(req.project, home)) : undefined;
   setHomeForRedaction(home);
 
-  const cc = createClaudeCodeAdapter({ homeDir: home });
-  const wantCC = !req.tool || req.tool === cc.id;
+  const adapters: Adapter[] = [
+    createClaudeCodeAdapter({ homeDir: home }),
+    createCodexAdapter({ homeDir: home }),
+    createGeminiAdapter({ homeDir: home }),
+  ].filter((a) => !req.tool || req.tool === a.id);
   const sessions: Session[] = [];
-  if (wantCC) {
-    for await (const s of cc.loadSessions({ since: req.since, project, redact: req.redact }))
+  for (const a of adapters) {
+    for await (const s of a.loadSessions({ since: req.since, project, redact: req.redact }))
       sessions.push(s);
   }
 
@@ -81,18 +86,25 @@ export async function runScan(req: ScanRequest): Promise<ScanResult> {
     ...new Set([...sessions.map((s) => s.projectPath), ...(project ? [project] : [])]),
   ].filter((p) => p.startsWith('/') || /^[A-Za-z]:\\/.test(p));
   const tools: InstalledTool[] = [];
-  const ccTool = wantCC ? await cc.detect({ projectPaths }) : null;
-  if (ccTool) {
-    ccTool.version = sessions
+  for (const a of adapters) {
+    const tool = await a.detect({ projectPaths });
+    if (!tool) continue;
+    const own = sessions.filter((s) => s.tool === a.id);
+    tool.version = own
       .map((s) => s.version)
       .filter(Boolean)
       .sort()
       .at(-1);
-    mergeLogMcpServers(ccTool, sessions);
-    annotateUsage(ccTool, sessions, await cc.usageCounters());
-    tools.push(ccTool);
+    mergeLogMcpServers(tool, own);
+    annotateUsage(
+      tool,
+      own,
+      (await a.usageCounters?.()) ?? { skills: new Map(), plugins: new Map() },
+    );
+    tools.push(tool);
   }
-  for (const t of await discoverOthers(home)) if (!req.tool || req.tool === t.id) tools.push(t);
+  for (const t of await discoverOthers(home, projectPaths))
+    if (!req.tool || req.tool === t.id) tools.push(t);
 
   const inventory: Inventory = { tools };
   const analyze = req.analyze !== false;
@@ -126,7 +138,7 @@ export async function runScan(req: ScanRequest): Promise<ScanResult> {
     ? runAnalyzers({ inventory, sessions, thresholds, now, audit, duplication }, req.warn)
     : [];
   const modelAdvice = analyze ? computeModelAdvice(sessions) : [];
-  const stats = wantCC ? cc.stats() : emptyStats();
+  const stats = sumStats(adapters.map((a) => a.stats()));
   return {
     inventory,
     sessions,
